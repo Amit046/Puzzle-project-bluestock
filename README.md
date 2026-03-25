@@ -4,7 +4,7 @@
 ---
 
 ## 🚀 QUICK START (Windows)
-
+livr link : https://puzzle-bluestock.onrender.com
 ### Terminal 1 – Backend
 ```cmd
 cd backend
