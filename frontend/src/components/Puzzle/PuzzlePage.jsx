@@ -2,8 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import dayjs from "dayjs";
 import { usePuzzle } from "../../hooks/usePuzzle";
-import WordPuzzle from "./WordPuzzle";
-import NumberPuzzle from "./NumberPuzzle";
+import CrownsPuzzle from "./CrownsPuzzle";
 import InstructionsModal from "./InstructionsModal";
 
 // ── Confetti ────────────────────────────────────────────────────
@@ -70,172 +69,6 @@ function DiffBadge({ d }) {
   );
 }
 
-// ── Click-to-reveal Hints Panel ──────────────────────────────────
-function HintsPanel({ puzzle }) {
-  const [revealed, setRevealed] = useState({
-    cat: false,
-    h1: false,
-    h2: false,
-  });
-  const reveal = (key) => setRevealed((r) => ({ ...r, [key]: true }));
-
-  if (!puzzle) return null;
-
-  const HiddenBox = ({ label, color, onReveal }) => (
-    <button
-      onClick={onReveal}
-      className={`w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 border border-dashed
-        ${
-          color === "blue"
-            ? "border-blue-800/50 bg-blue-950/10 text-blue-400 hover:bg-blue-950/30"
-            : color === "purple"
-              ? "border-purple-800/50 bg-purple-950/10 text-purple-400 hover:bg-purple-950/30"
-              : "border-amber-800/50 bg-amber-950/10 text-amber-400 hover:bg-amber-950/30"
-        }
-        transition-all duration-200 group`}
-    >
-      <span className="text-lg">🔒</span>
-      <span className="text-sm font-medium">Tap to reveal {label}</span>
-      <span className="text-xs opacity-50 group-hover:opacity-100">→</span>
-    </button>
-  );
-
-  if (puzzle.type === "word") {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-5 space-y-2"
-      >
-        {/* Category clue */}
-        {!revealed.cat ? (
-          <HiddenBox
-            label="Category"
-            color="blue"
-            onReveal={() => reveal("cat")}
-          />
-        ) : (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center gap-3 bg-blue-950/30 border border-blue-800/40 rounded-xl px-4 py-2.5"
-          >
-            <span className="text-2xl flex-shrink-0">
-              {puzzle.categoryEmoji}
-            </span>
-            <div>
-              <p className="text-blue-400 text-[10px] font-display uppercase tracking-widest mb-0.5">
-                Category
-              </p>
-              <p className="text-slate-200 text-sm font-medium">
-                {puzzle.categoryClue}
-              </p>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Clue 1 */}
-        {!revealed.h1 ? (
-          <HiddenBox
-            label="Clue 1"
-            color="purple"
-            onReveal={() => reveal("h1")}
-          />
-        ) : (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex gap-3 bg-purple-950/30 border border-purple-800/40 rounded-xl px-4 py-3"
-          >
-            <span className="text-lg flex-shrink-0 mt-0.5">🔮</span>
-            <div>
-              <p className="text-purple-400 text-[10px] font-display uppercase tracking-widest mb-0.5">
-                Clue 1
-              </p>
-              <p className="text-slate-300 text-sm leading-relaxed">
-                {puzzle.hint1}
-              </p>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Clue 2 */}
-        {!revealed.h2 ? (
-          <HiddenBox
-            label="Clue 2"
-            color="amber"
-            onReveal={() => reveal("h2")}
-          />
-        ) : (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex gap-3 bg-amber-950/30 border border-amber-800/40 rounded-xl px-4 py-3"
-          >
-            <span className="text-lg flex-shrink-0 mt-0.5">💡</span>
-            <div>
-              <p className="text-amber-400 text-[10px] font-display uppercase tracking-widest mb-0.5">
-                Clue 2
-              </p>
-              <p className="text-slate-300 text-sm leading-relaxed">
-                {puzzle.hint2}
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </motion.div>
-    );
-  }
-
-  // Number puzzle
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="mb-5 space-y-2"
-    >
-      {!revealed.h1 ? (
-        <HiddenBox
-          label="Clue 1"
-          color="purple"
-          onReveal={() => reveal("h1")}
-        />
-      ) : (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.97 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex gap-3 bg-purple-950/30 border border-purple-800/40 rounded-xl px-4 py-3"
-        >
-          <span className="text-lg flex-shrink-0 mt-0.5">🔮</span>
-          <div>
-            <p className="text-purple-400 text-[10px] font-display uppercase tracking-widest mb-0.5">
-              Clue 1
-            </p>
-            <p className="text-slate-300 text-sm">{puzzle.hint1}</p>
-          </div>
-        </motion.div>
-      )}
-      {!revealed.h2 ? (
-        <HiddenBox label="Clue 2" color="amber" onReveal={() => reveal("h2")} />
-      ) : (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.97 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex gap-3 bg-amber-950/30 border border-amber-800/40 rounded-xl px-4 py-3"
-        >
-          <span className="text-lg flex-shrink-0 mt-0.5">💡</span>
-          <div>
-            <p className="text-amber-400 text-[10px] font-display uppercase tracking-widest mb-0.5">
-              Clue 2
-            </p>
-            <p className="text-slate-300 text-sm">{puzzle.hint2}</p>
-          </div>
-        </motion.div>
-      )}
-    </motion.div>
-  );
-}
-
 // ── Main Page ────────────────────────────────────────────────────
 export default function PuzzlePage() {
   const {
@@ -243,15 +76,15 @@ export default function PuzzlePage() {
     loading,
     error,
     gameState,
-    attempts,
-    input,
-    setInput,
+    boardState,
+    toggleCell,
     hintsUsed,
     hintVisible,
     useHint,
     maxHints,
     timer,
     fmt,
+    mistakes,
     score,
     streak,
     totalSolved,
@@ -264,8 +97,20 @@ export default function PuzzlePage() {
   } = usePuzzle();
 
   const [badgeIdx, setBadgeIdx] = useState(0);
+  const [toastMsg, setToastMsg] = useState(null);
   const today = dayjs().format("dddd, MMMM D");
-  const attemptsLeft = puzzle ? puzzle.maxAttempts - attempts.length : 0;
+  const attemptsLeft = puzzle ? puzzle.maxAttempts - mistakes : 0;
+
+  const handleSubmit = async () => {
+      const res = await submit();
+      if (res.result === 'incomplete') {
+          setToastMsg('Please place all crowns before submitting.');
+          setTimeout(() => setToastMsg(null), 3000);
+      } else if (res.result === 'mistake') {
+          setToastMsg(`Incorrect layout! ${res.remaining} attempts left.`);
+          setTimeout(() => setToastMsg(null), 3000);
+      }
+  };
 
   if (loading)
     return (
@@ -273,12 +118,12 @@ export default function PuzzlePage() {
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="text-5xl"
+          className="text-5xl drop-shadow-lg"
         >
-          🧩
+          👑
         </motion.div>
-        <p className="text-slate-500 font-display text-sm tracking-widest">
-          LOADING PUZZLE...
+        <p className="text-slate-500 font-display text-sm tracking-widest uppercase">
+          Building Grid...
         </p>
       </div>
     );
@@ -301,7 +146,7 @@ export default function PuzzlePage() {
     );
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-6 animate-fade-in">
+    <div className="max-w-xl mx-auto px-4 py-8 animate-fade-in flex flex-col items-center">
       {/* Badge toasts */}
       <AnimatePresence>
         {newBadges[badgeIdx] && (
@@ -310,6 +155,17 @@ export default function PuzzlePage() {
             onClose={() => setBadgeIdx((i) => i + 1)}
           />
         )}
+        
+        {toastMsg && (
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 20, opacity: 0 }}
+              className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-red-950 text-red-300 px-4 py-2 rounded-xl shadow-xl text-sm border border-red-800"
+            >
+              {toastMsg}
+            </motion.div>
+        )}
       </AnimatePresence>
 
       {/* Confetti on win */}
@@ -317,35 +173,31 @@ export default function PuzzlePage() {
 
       {/* Instructions modal */}
       <InstructionsModal
-        puzzle={puzzle}
         isOpen={showInstructions}
         onClose={() => setShowInstructions(false)}
       />
 
       {/* ── Header ── */}
-      <div className="text-center mb-5">
-        <p className="text-slate-600 text-xs tracking-widest uppercase font-display">
+      <div className="text-center mb-6 w-full">
+        <p className="text-slate-500 text-xs tracking-widest uppercase font-display font-semibold mb-1">
           {today}
         </p>
         <div className="flex items-center justify-center gap-2 mt-1.5">
-          <h1 className="font-display text-2xl font-bold text-white">
-            Puzzle #{puzzle?.puzzleNumber}
+          <h1 className="font-display text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-500 drop-shadow-sm pb-1">
+            Crowns #{puzzle?.puzzleNumber}
           </h1>
           <button
             onClick={() => setShowInstructions(true)}
-            className="w-6 h-6 rounded-full bg-slate-700 hover:bg-slate-600 text-slate-400 hover:text-white text-xs flex items-center justify-center transition-colors"
+            className="w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-sm flex items-center justify-center transition-all border border-slate-700 hover:border-slate-500"
             title="How to play"
           >
             ?
           </button>
         </div>
-        <div className="flex items-center justify-center gap-2 mt-2">
+        <div className="flex items-center justify-center gap-2 mt-3">
           <DiffBadge d={puzzle?.difficulty} />
-          <span className="badge badge-blue">
-            {puzzle?.type?.toUpperCase()}
-          </span>
           {streak > 0 && (
-            <span className="badge bg-orange-950 text-orange-400 border border-orange-800">
+            <span className="badge bg-orange-900/50 text-orange-400 border border-orange-800/80 px-2.5 py-1">
               {streak} 🔥
             </span>
           )}
@@ -353,10 +205,10 @@ export default function PuzzlePage() {
       </div>
 
       {/* ── Stats bar ── */}
-      <div className="grid grid-cols-4 gap-2 mb-5">
+      <div className="grid grid-cols-4 gap-3 mb-6 w-full">
         {[
           { label: "Time", value: fmt(timer), color: "text-blue-400" },
-          { label: "Streak", value: `${streak}🔥`, color: "text-orange-400" },
+          { label: "Mistakes", value: `${mistakes}/${puzzle?.maxAttempts}`, color: "text-red-400" },
           { label: "Solved", value: totalSolved, color: "text-green-400" },
           {
             label: "Hints",
@@ -364,115 +216,80 @@ export default function PuzzlePage() {
             color: "text-purple-400",
           },
         ].map((s) => (
-          <div key={s.label} className="card py-2.5 px-1 text-center">
-            <p className={`font-display font-bold text-base ${s.color}`}>
+          <div key={s.label} className="bg-slate-900/60 border border-slate-800/50 rounded-2xl py-3 px-1 text-center shadow-inner backdrop-blur-sm">
+            <p className={`font-display font-extrabold text-lg ${s.color}`}>
               {s.value}
             </p>
-            <p className="text-slate-600 text-xs mt-0.5">{s.label}</p>
+            <p className="text-slate-500 text-[10px] uppercase tracking-wider font-semibold mt-1">
+              {s.label}
+            </p>
           </div>
         ))}
       </div>
-
-      {/* ── Always-visible Hints (paheli style) ── */}
-      {!alreadyDone && (gameState === "idle" || gameState === "playing") && (
-        <HintsPanel puzzle={puzzle} />
-      )}
-
-      {/* ── Secret letter hint (on button press) ── */}
-      <AnimatePresence>
-        {hintVisible && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="card mb-4 bg-green-950/40 border-green-800/50 text-center"
-          >
-            <p className="text-green-300 text-sm">
-              🔑 Secret hint: {puzzle?.hint}
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* ── Already completed ── */}
       {alreadyDone && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="card mb-5 text-center border-green-800/50 bg-green-950/30"
+          className="w-full card mb-6 text-center border-green-800/50 bg-green-950/40 backdrop-blur-sm"
         >
-          <p className="text-3xl mb-2">✅</p>
-          <p className="font-display text-green-400 font-bold text-lg">
+          <p className="text-4xl mb-3 drop-shadow-md">👑</p>
+          <p className="font-display text-green-400 font-bold text-xl">
             Already solved today!
           </p>
-          <p className="text-slate-500 text-sm mt-1">
-            Score: <span className="text-white font-bold">{score}</span>
+          <p className="text-slate-400 text-sm mt-2">
+            Score: <span className="text-white font-bold text-lg inline-block ml-1">{score}</span>
           </p>
-          <p className="text-slate-600 text-xs mt-2">
+          <p className="text-slate-500 text-xs mt-3 uppercase tracking-wide">
             Come back tomorrow for a new puzzle 🌅
           </p>
         </motion.div>
       )}
 
       {/* ── Result banners ── */}
-      <AnimatePresence>
+      <AnimatePresence mode="popLayout">
         {gameState === "won" && !alreadyDone && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="card mb-5 text-center border-green-700/50 bg-green-950/30"
+            initial={{ opacity: 0, scale: 0.9, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="w-full card mb-6 text-center border-green-700/50 bg-green-950/40 backdrop-blur-md shadow-2xl shadow-green-900/20"
           >
-            <p className="text-5xl mb-3">🎉</p>
-            <p className="font-display text-green-400 font-bold text-2xl">
+            <p className="text-6xl mb-4 drop-shadow-xl animate-bounce-in">🎉</p>
+            <p className="font-display text-green-400 font-black text-3xl">
               Solved!
             </p>
-            <div className="flex justify-center gap-6 mt-4">
+            <div className="flex justify-center gap-8 mt-6 bg-slate-950/50 rounded-xl p-4 border border-slate-800/50">
               <div>
-                <p className="font-display text-xl text-white font-bold">
+                <p className="font-display text-2xl text-white font-bold">
                   {score}
                 </p>
-                <p className="text-slate-500 text-xs">Score</p>
+                <p className="text-slate-500 text-xs mt-1 uppercase tracking-widest">Score</p>
               </div>
+              <div className="w-px bg-slate-800"></div>
               <div>
-                <p className="font-display text-xl text-white font-bold">
+                <p className="font-display text-2xl text-white font-bold">
                   {fmt(timer)}
                 </p>
-                <p className="text-slate-500 text-xs">Time</p>
-              </div>
-              <div>
-                <p className="font-display text-xl text-white font-bold">
-                  {attempts.length}
-                </p>
-                <p className="text-slate-500 text-xs">Attempts</p>
+                <p className="text-slate-500 text-xs mt-1 uppercase tracking-widest">Time</p>
               </div>
             </div>
-            {puzzle?.type === "word" && (
-              <p className="text-slate-500 text-sm mt-3">
-                Word:{" "}
-                <span className="text-white font-display font-bold">
-                  {puzzle.targetWord}
-                </span>
-              </p>
-            )}
           </motion.div>
         )}
         {gameState === "lost" && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="card mb-5 text-center border-red-800/40 bg-red-950/20"
+            className="w-full card mb-6 text-center border-red-800/50 bg-red-950/40 backdrop-blur-md"
           >
-            <p className="text-5xl mb-3">💀</p>
+            <p className="text-5xl mb-3 drop-shadow-md">💀</p>
             <p className="font-display text-red-400 font-bold text-2xl">
               Game Over
             </p>
             <p className="text-slate-400 text-sm mt-3">
-              Answer:{" "}
-              <span className="text-white font-display font-bold">
-                {puzzle?.type === "word" ? puzzle.targetWord : puzzle?.answer}
-              </span>
+              You ran out of attempts.
             </p>
-            <p className="text-slate-600 text-xs mt-2">
+            <p className="text-slate-500 text-xs mt-3 uppercase tracking-wider">
               Try again tomorrow! 💪
             </p>
           </motion.div>
@@ -482,82 +299,69 @@ export default function PuzzlePage() {
       {/* ── Idle / start screen ── */}
       {gameState === "idle" && !alreadyDone && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="card mb-5 text-center"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full bg-slate-900/80 border border-slate-800 rounded-2xl p-8 mb-6 text-center shadow-xl backdrop-blur-sm"
         >
-          <p className="text-4xl mb-3">🧩</p>
-          <p className="font-display text-white font-bold text-xl mb-1">
-            {puzzle?.type === "word"
-              ? `Guess the ${puzzle.wordLength}-letter word`
-              : `Solve: ${puzzle?.question}`}
+          <div className="flex justify-center mb-6">
+             <div className="w-20 h-20 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/20 shadow-inner">
+               <p className="text-5xl drop-shadow-lg">👑</p>
+             </div>
+          </div>
+          <p className="font-display text-slate-100 font-bold text-xl mb-3 tracking-tight">
+            Place the Crowns
           </p>
-          <p className="text-slate-500 text-sm mb-5">
-            {puzzle?.type === "word"
-              ? `${puzzle.maxAttempts} attempts · ${puzzle.difficulty} difficulty`
-              : `${puzzle?.maxAttempts} attempts allowed`}
+          <p className="text-slate-400 text-sm mb-8 leading-relaxed max-w-sm mx-auto">
+            {puzzle?.question}
           </p>
-          <div className="flex gap-3 justify-center">
+          <div className="flex flex-col gap-3 justify-center sm:flex-row">
             <button
               onClick={() => setShowInstructions(true)}
-              className="btn-secondary px-4 py-2 text-sm"
+              className="btn-secondary py-3 px-6 text-sm font-semibold rounded-xl"
             >
               How to play
             </button>
-            <button onClick={startGame} className="btn-primary px-6">
-              Start →
+            <button 
+              onClick={startGame} 
+              className="bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 font-black py-3 px-8 rounded-xl transition-all shadow-lg shadow-amber-500/20 uppercase tracking-wider text-sm"
+            >
+              Start Game →
             </button>
           </div>
         </motion.div>
       )}
 
       {/* ── Active game ── */}
-      {(gameState === "playing" ||
-        ((gameState === "won" || gameState === "lost") && !alreadyDone)) && (
-        <div className="mt-2">
-          {puzzle?.type === "word" ? (
-            <WordPuzzle
-              puzzle={puzzle}
-              attempts={attempts}
-              input={input}
-              onInput={setInput}
-              onSubmit={() => submit()}
-              gameState={gameState}
-            />
-          ) : (
-            <NumberPuzzle
-              puzzle={puzzle}
-              attempts={attempts}
-              input={input}
-              onInput={setInput}
-              onSubmit={submit}
-              gameState={gameState}
-            />
+      {(gameState === "playing" || gameState === "won" || gameState === "lost") && (
+        <motion.div 
+           initial={{ opacity: 0, scale: 0.95 }}
+           animate={{ opacity: 1, scale: 1 }}
+           className="mt-2 w-full flex flex-col items-center"
+        >
+          <CrownsPuzzle
+            puzzle={puzzle}
+            boardState={boardState}
+            onToggle={toggleCell}
+            onSubmit={handleSubmit}
+            gameState={gameState}
+          />
+
+          {/* ── Secret hint button ── */}
+          {gameState === "playing" && (
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={useHint}
+                disabled={hintsUsed >= maxHints}
+                className="bg-purple-900/30 text-purple-300 border border-purple-800/50 hover:bg-purple-800/40 px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-2 transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-inner backdrop-blur-sm"
+              >
+                <span>✨</span> Reveal a correct crown{" "}
+                <span className="text-purple-400 bg-purple-950/50 px-2 py-0.5 rounded-md text-xs font-bold border border-purple-800/30 ml-1">
+                  {maxHints - hintsUsed} left
+                </span>
+              </button>
+            </div>
           )}
-        </div>
-      )}
-
-      {/* ── Secret hint button (extra letter hint) ── */}
-      {gameState === "playing" && (
-        <div className="flex justify-center mt-4">
-          <button
-            onClick={useHint}
-            disabled={hintsUsed >= maxHints}
-            className="btn-ghost text-sm flex items-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            🔑 Reveal a secret hint{" "}
-            <span className="text-slate-600">
-              ({maxHints - hintsUsed} left)
-            </span>
-          </button>
-        </div>
-      )}
-
-      {/* ── Attempts remaining ── */}
-      {gameState === "playing" && puzzle && (
-        <p className="text-center text-slate-700 text-xs mt-3 font-display">
-          {attemptsLeft} attempt{attemptsLeft !== 1 ? "s" : ""} remaining
-        </p>
+        </motion.div>
       )}
     </div>
   );

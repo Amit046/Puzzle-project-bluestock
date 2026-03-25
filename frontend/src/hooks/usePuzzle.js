@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import dayjs from 'dayjs'
-import { generateDailyPuzzle, calcScore, evaluateWordGuess } from '../lib/puzzleEngine'
-import { saveActivity, getActivity, saveProgress, getProgress, clearProgress } from '../lib/db'
+import { generateDailyCrowns, calcCrownsScore } from '../lib/crownsEngine'
+import { saveActivity, getActivity, saveProgress, getProgress } from '../lib/db'
 import { calculateStreak, getTotalSolved, checkAchievements } from '../lib/streak'
 import { performSync } from '../lib/syncManager'
 
-const MAX_HINTS = 2
+const MAX_HINTS = 3
 
 export function usePuzzle() {
   const today = dayjs().format('YYYY-MM-DD')
@@ -14,8 +14,10 @@ export function usePuzzle() {
   const [loading, setLoading]           = useState(true)
   const [error, setError]               = useState(null)
   const [gameState, setGameState]       = useState('idle') // idle|playing|won|lost
-  const [attempts, setAttempts]         = useState([])
-  const [input, setInput]               = useState('')
+  // boardState will be a 1D array of integers: 0=empty, 1=X, 2=Crown
+  const [boardState, setBoardState]     = useState([])
+  const [mistakes, setMistakes]         = useState(0)
+  
   const [hintsUsed, setHintsUsed]       = useState(0)
   const [hintVisible, setHintVisible]   = useState(false)
   const [timer, setTimer]               = useState(0)
@@ -34,7 +36,7 @@ export function usePuzzle() {
     ;(async () => {
       setLoading(true)
       try {
-        const p = await generateDailyPuzzle(today)
+        const p = await generateDailyCrowns(today)
         setPuzzle(p)
 
         const act = await getActivity(today)
@@ -42,12 +44,21 @@ export function usePuzzle() {
           setAlreadyDone(true)
           setScore(act.score)
           setGameState('won')
+          // Reconstruct the correct board state 
+          const solvedBoard = Array(p.size * p.size).fill(0);
+          for (let r=0; r<p.size; r++) {
+            solvedBoard[r * p.size + p.solution[r]] = 2;
+          }
+          setBoardState(solvedBoard)
         } else {
           const prog = await getProgress(today)
-          if (prog) {
-            setAttempts(prog.attempts || [])
+          if (prog && prog.boardState && prog.boardState.length === p.size * p.size) {
+            setBoardState(prog.boardState)
+            setMistakes(prog.mistakes || 0)
             setTimer(prog.timer || 0)
-            if ((prog.attempts || []).length > 0) setGameState('playing')
+            setGameState('playing')
+          } else {
+            setBoardState(Array(p.size * p.size).fill(0))
           }
         }
 
@@ -62,40 +73,89 @@ export function usePuzzle() {
 
   // ── Timer ───────────────────────────────────────────────────
   useEffect(() => {
-    if (timerOn) timerRef.current = setInterval(() => setTimer(t => t + 1), 1000)
-    else clearInterval(timerRef.current)
+    if (timerOn && gameState === 'playing') {
+       timerRef.current = setInterval(() => setTimer(t => t + 1), 1000)
+    } else {
+       clearInterval(timerRef.current)
+    }
     return () => clearInterval(timerRef.current)
-  }, [timerOn])
+  }, [timerOn, gameState])
 
   const startGame = useCallback(() => {
     setGameState('playing')
     setTimerOn(true)
   }, [])
 
-  // ── Submit ──────────────────────────────────────────────────
-  const submit = useCallback(async (overrideInput) => {
-    if (!puzzle || gameState !== 'playing') return { result: 'invalid' }
+  // Toggle cell state: 0 -> 1(X) -> 2(Crown) -> 0
+  const toggleCell = useCallback((index) => {
+    if (gameState !== 'playing') return;
     if (!timerOn) setTimerOn(true)
 
-    const val = (overrideInput ?? input).toString().toUpperCase().trim()
-    if (!val) return { result: 'empty' }
+    setBoardState(prev => {
+      const next = [...prev]
+      next[index] = (next[index] + 1) % 3
+      
+      // Auto-save logic
+      saveProgress(today, { boardState: next, timer, mistakes }).catch(()=>{})
+      
+      return next
+    })
+  }, [gameState, timerOn, today, timer, mistakes])
 
-    // Word length check
-    if (puzzle.type === 'word' && val.length !== puzzle.wordLength) return { result: 'wrong_length' }
+  const revealHint = useCallback(() => {
+    if (hintsUsed >= MAX_HINTS || gameState !== 'playing') return
+    
+    // Find an empty cell or incorrect cell that should be a crown
+    let targetIdx = -1;
+    for (let r = 0; r < puzzle.size; r++) {
+         const c = puzzle.solution[r];
+         const idx = r * puzzle.size + c;
+         if (boardState[idx] !== 2) {
+             targetIdx = idx;
+             break;
+         }
+    }
+    
+    if (targetIdx !== -1) {
+        setHintsUsed(h => h + 1)
+        setBoardState(prev => {
+           let next = [...prev];
+           next[targetIdx] = 2; // place correct crown
+           return next;
+        })
+    }
+  }, [hintsUsed, puzzle, gameState, boardState])
 
-    const isCorrect = puzzle.type === 'word'
-      ? val === puzzle.targetWord
-      : parseInt(val) === puzzle.answer
+  // Validation
+  const checkWinCondition = useCallback(async () => {
+    if (gameState !== 'playing' || !puzzle) return;
 
-    const newAttempts = [...attempts, { input: val, correct: isCorrect, time: timer }]
-    setAttempts(newAttempts)
-    setInput('')
-    await saveProgress(today, { attempts: newAttempts, timer })
+    let placedCrowns = 0;
+    
+    // Calculate placed crowns
+    for (let i = 0; i < boardState.length; i++) {
+        if (boardState[i] === 2) placedCrowns++;
+    }
+
+    if (placedCrowns < puzzle.size) {
+        return { result: 'incomplete' }; // Not enough crowns placed
+    }
+
+    // Checking correct positions
+    let isCorrect = true;
+    for (let r = 0; r < puzzle.size; r++) {
+        const expectedCol = puzzle.solution[r];
+        const idx = r * puzzle.size + expectedCol;
+        if (boardState[idx] !== 2) {
+            isCorrect = false;
+            break;
+        }
+    }
 
     if (isCorrect) {
       setTimerOn(false)
       setGameState('won')
-      const finalScore = calcScore({ timeTaken: timer, difficulty: puzzle.difficulty, hintsUsed, attempts: newAttempts.length, completed: true })
+      const finalScore = calcCrownsScore({ timeTaken: timer, difficultyLevel: puzzle.difficultyLevel, hintsUsed, mistakes })
       setScore(finalScore)
       await saveActivity(today, { solved: true, score: finalScore, timeTaken: timer, difficulty: puzzle.difficultyLevel, puzzleType: puzzle.type, hintsUsed, synced: false })
       const ns = await calculateStreak(); const nt = await getTotalSolved()
@@ -103,33 +163,32 @@ export function usePuzzle() {
       const badges = await checkAchievements(ns, nt)
       setNewBadges(badges)
       performSync()
-      return { result: 'correct', score: finalScore }
-    } else if (newAttempts.length >= puzzle.maxAttempts) {
-      setTimerOn(false)
-      setGameState('lost')
-      await saveActivity(today, { solved: false, timeTaken: timer, difficulty: puzzle.difficultyLevel, puzzleType: puzzle.type, hintsUsed })
-      return { result: 'lost' }
+      return { result: 'won' }
+    } else {
+      // Record a mistake
+      const currentMistakes = mistakes + 1;
+      setMistakes(currentMistakes);
+      
+      if (currentMistakes >= puzzle.maxAttempts) {
+         setTimerOn(false)
+         setGameState('lost')
+         await saveActivity(today, { solved: false, timeTaken: timer, difficulty: puzzle.difficultyLevel, puzzleType: puzzle.type, hintsUsed })
+         return { result: 'lost' }
+      }
+      return { result: 'mistake', remaining: puzzle.maxAttempts - currentMistakes }
     }
-    return { result: 'wrong' }
-  }, [puzzle, gameState, input, attempts, timer, today, hintsUsed, timerOn])
-
-  const useHint = useCallback(() => {
-    if (hintsUsed >= MAX_HINTS) return
-    setHintsUsed(h => h + 1)
-    setHintVisible(true)
-    setTimeout(() => setHintVisible(false), 6000)
-  }, [hintsUsed])
+  }, [gameState, puzzle, boardState, mistakes, timer, today, hintsUsed])
 
   const fmt = s => `${String(Math.floor(s / 60)).padStart(2,'0')}:${String(s % 60).padStart(2,'0')}`
 
   return {
     puzzle, loading, error,
-    gameState, attempts, input, setInput,
-    hintsUsed, hintVisible, useHint, maxHints: MAX_HINTS,
-    timer, fmt,
+    gameState, boardState, toggleCell,
+    hintsUsed, hintVisible, useHint: revealHint, maxHints: MAX_HINTS,
+    timer, fmt, mistakes,
     score, streak, totalSolved,
     newBadges, alreadyDone,
     showInstructions, setShowInstructions,
-    submit, startGame
+    submit: checkWinCondition, startGame
   }
 }
